@@ -4,22 +4,40 @@ import com.scaler.userservicesept25morning.dtos.LoginRequestDto;
 import com.scaler.userservicesept25morning.dtos.SignUpRequestDto;
 import com.scaler.userservicesept25morning.dtos.TokenDto;
 import com.scaler.userservicesept25morning.dtos.UserDto;
+import com.scaler.userservicesept25morning.exceptions.PasswordMismatchException;
+import com.scaler.userservicesept25morning.models.Token;
 import com.scaler.userservicesept25morning.models.User;
-import org.springframework.http.ResponseEntity;
+import com.scaler.userservicesept25morning.services.UserService;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/users")
 public class UserController {
+    private UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @PostMapping("/signup")
-    public ResponseEntity<UserDto> signUp(@RequestBody SignUpRequestDto requestDto) {
-        return null;
+    public UserDto signUp(@RequestBody SignUpRequestDto requestDto) {
+        User user = userService.signup(
+                requestDto.getName(),
+                requestDto.getEmail(),
+                requestDto.getPassword()
+        );
+
+        return UserDto.from(user);
     }
 
     @PostMapping("/login")
-    public TokenDto login(@RequestBody LoginRequestDto requestDto) {
-        return null;
+    public TokenDto login(@RequestBody LoginRequestDto requestDto) throws PasswordMismatchException {
+        Token token = userService.login(
+                requestDto.getEmail(),
+                requestDto.getPassword()
+        );
+
+        return TokenDto.from(token);
     }
 
     @GetMapping("/validate/{tokenValue}")
