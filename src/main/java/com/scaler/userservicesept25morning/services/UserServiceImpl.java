@@ -121,6 +121,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User validateToken(String jwtToken) throws InvalidTokenException {
+        System.out.println("Calling validateToken method.");
 
 //        Optional<Token> tokenOptional =
 //                tokenRepository.findByTokenValueAndExpiryDateAfter(tokenValue, new Date());
@@ -140,25 +141,25 @@ public class UserServiceImpl implements UserService {
         2. Get the claims and verify the token
          */
 
-        JwtParser jwtParser = Jwts.parser().verifyWith(secretKey).build();
-        Claims claims = jwtParser.parseSignedClaims(jwtToken).getPayload();
+//        JwtParser jwtParser = Jwts.parser().verifyWith(secretKey).build();
+//        Claims claims = jwtParser.parseSignedClaims(jwtToken).getPayload();
 
         // JWT stores the exp time in epoch format.
 //        Date expiryDate = (Date) claims.get("exp");
 //        Date currentDate = new Date();
-
-        Long expiryTime = (Long) claims.get("exp");
-        expiryTime = expiryTime * 1000L; // convert the expiry time into milliseconds.
-        Long currentTime = System.currentTimeMillis(); // epoch time.
-
-        if (expiryTime > currentTime) {
-            //Token is valid
-            Integer userId = (Integer) claims.get("userId");
-
-            Optional<User> optionalUser = userRepository.findById(Long.valueOf(userId));
-
-            return optionalUser.get();
-        }
+//
+//        Long expiryTime = (Long) claims.get("exp");
+//        expiryTime = expiryTime * 1000L; // convert the expiry time into milliseconds.
+//        Long currentTime = System.currentTimeMillis(); // epoch time.
+//
+//        if (expiryTime > currentTime) {
+//            //Token is valid
+//            Integer userId = (Integer) claims.get("userId");
+//
+//            Optional<User> optionalUser = userRepository.findById(Long.valueOf(userId));
+//
+//            return optionalUser.get();
+//        }
 
         //Token is InValid.
         return null;
