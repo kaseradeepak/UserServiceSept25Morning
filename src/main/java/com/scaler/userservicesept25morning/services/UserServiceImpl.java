@@ -1,5 +1,8 @@
 package com.scaler.userservicesept25morning.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scaler.userservicesept25morning.dtos.SendEmailDto;
 import com.scaler.userservicesept25morning.exceptions.InvalidTokenException;
 import com.scaler.userservicesept25morning.exceptions.PasswordMismatchException;
 import com.scaler.userservicesept25morning.models.Role;
@@ -7,10 +10,9 @@ import com.scaler.userservicesept25morning.models.User;
 import com.scaler.userservicesept25morning.repositories.RoleRepository;
 import com.scaler.userservicesept25morning.repositories.TokenRepository;
 import com.scaler.userservicesept25morning.repositories.UserRepository;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.MacAlgorithm;
+import org.springframework.boot.autoconfigure.jmx.ParentAwareNamingStrategy;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,17 +26,23 @@ public class UserServiceImpl implements UserService {
     private TokenRepository tokenRepository;
     private RoleRepository roleRepository;
     private SecretKey secretKey;
+    private KafkaTemplate<String, String> kafkaTemplate;
+    private ObjectMapper objectMapper;
 
     public UserServiceImpl(UserRepository userRepository,
                            BCryptPasswordEncoder passwordEncoder,
                            TokenRepository tokenRepository,
                            RoleRepository roleRepository,
-                           SecretKey secretKey) {
+                           SecretKey secretKey,
+                           KafkaTemplate<String, String> kafkaTemplate,
+                           ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = passwordEncoder;
         this.tokenRepository = tokenRepository;
         this.roleRepository = roleRepository;
         this.secretKey = secretKey;
+        this.kafkaTemplate = kafkaTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -54,6 +62,20 @@ public class UserServiceImpl implements UserService {
 
         Optional<Role> optionalRole = roleRepository.findByValue("STUDENT");
         user.getRoles().add(optionalRole.get());
+
+        //Push an event to Kafka to be consumed by EmailService to send a Welcome Email to the User.
+        SendEmailDto emailDto = new SendEmailDto();
+        emailDto.setEmail(email);
+        emailDto.setSubject("Welcome to Scaler!");
+        emailDto.setBody("Welcome to Scaler and All the best for your Upskilling journey!");
+
+        try {
+            kafkaTemplate.send(
+                    "sendEmail",
+                    objectMapper.writeValueAsString(emailDto));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
 
         //Save the user to the DB.
         return userRepository.save(user);
